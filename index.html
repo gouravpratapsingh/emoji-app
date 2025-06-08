@@ -402,15 +402,27 @@
                     'rounded-full', 'shadow-md', 'focus:outline-none', 'focus:ring-2',
                     'focus:ring-purple-400', 'active:bg-purple-800' // active for immediate feedback
                 );
-                // Use touchstart for better responsiveness on mobile
-                button.addEventListener('touchstart', (e) => {
-                    e.preventDefault(); // Prevent default touch behavior like scrolling
-                    if (gameActive && currentEmoji === emoji) { // Check if the button's associated emoji matches
+
+                // Use 'click' for desktop compatibility and 'touchstart' for mobile.
+                // It's crucial to prevent default touch behavior for 'touchstart'.
+                button.addEventListener('click', (e) => {
+                    if (gameActive && currentEmoji === emoji) {
                         handleCorrectReaction();
                     } else if (gameActive) {
                         endGame(`Wrong button! You pressed '${key}', but expected '${emojiMap[currentEmoji]}'.`);
                     }
                 });
+
+                button.addEventListener('touchstart', (e) => {
+                    e.preventDefault(); // This is KEY: prevents default browser touch behaviors (like scrolling, zooming, etc.)
+                                        // that can interfere with button clicks.
+                    if (gameActive && currentEmoji === emoji) {
+                        handleCorrectReaction();
+                    } else if (gameActive) {
+                        endGame(`Wrong button! You pressed '${key}', but expected '${emojiMap[currentEmoji]}'.`);
+                    }
+                }, { passive: false }); // { passive: false } allows preventDefault() to work
+
                 buttonContainer.appendChild(button);
             });
             gameContainer.appendChild(buttonContainer);

@@ -116,6 +116,30 @@
         .message-box button:hover {
             background-color: #4f46e5;
         }
+
+        /* Styles for mobile touch buttons */
+        .touch-button-container {
+            display: none; /* Hidden by default, shown via JS for active game */
+            gap: 1rem; /* Space between buttons */
+            flex-wrap: wrap; /* Allow buttons to wrap on smaller screens */
+            justify-content: center;
+        }
+        .touch-button-container button {
+            flex-grow: 1; /* Allow buttons to grow and fill space */
+            min-width: 80px; /* Minimum width for buttons */
+            font-size: 1.5rem;
+            padding: 0.75rem 1.25rem;
+        }
+
+        @media (max-width: 768px) {
+            .touch-button-container {
+                display: flex; /* Show touch buttons on smaller screens */
+            }
+            /* Hide instructions on smaller screens when game starts, or show only relevant part */
+            #instructions.hidden-on-mobile {
+                display: none;
+            }
+        }
     </style>
 </head>
 <body>
@@ -126,8 +150,7 @@
         </p>
 
         <div class="emoji-display" id="emojiDisplay">
-            <!-- Emoji will appear here -->
-        </div>
+            </div>
 
         <p class="text-3xl font-bold text-gray-700 mb-4">Score: <span id="score">0</span></p>
         <p class="text-xl text-gray-600 mb-6">Time Left: <span id="timeLeft">--</span>s</p>
@@ -138,7 +161,6 @@
         <div id="gameMessage" class="text-red-600 font-bold text-xl mt-4 hidden"></div>
     </div>
 
-    <!-- Custom Message Box -->
     <div id="customMessageBox" class="message-box">
         <h2 class="text-2xl font-bold mb-4" id="messageBoxTitle"></h2>
         <p class="text-gray-700 mb-4" id="messageBoxContent"></p>
@@ -149,9 +171,10 @@
         const emojiMap = {
             '😊': 'H',
             '😡': 'A',
-            '�': 'S'
+            '😢': 'S'
         };
-        const emojis = Object.keys(emojiMap);
+        // Create a reverse map for easier lookup when creating touch buttons
+        const keyEmojiMap = Object.fromEntries(Object.entries(emojiMap).map(([emoji, key]) => [key, emoji]));
 
         let score = 0;
         let timeLeft = 30; // Initial game time in seconds
@@ -171,6 +194,7 @@
         const playAgainButton = document.getElementById('playAgainButton');
         const gameMessage = document.getElementById('gameMessage');
         const instructions = document.getElementById('instructions');
+        const gameContainer = document.querySelector('.game-container'); // Get the game container
 
         // Message Box elements
         const customMessageBox = document.getElementById('customMessageBox');
@@ -216,6 +240,10 @@
             startButton.classList.add('button-pulse'); // Add pulse animation back
             playAgainButton.classList.add('hidden');
             instructions.classList.remove('hidden'); // Show instructions
+
+            // Remove any existing touch buttons
+            const existingTouchButtons = document.querySelectorAll('.touch-button-container');
+            existingTouchButtons.forEach(button => button.remove());
         }
 
         /**
@@ -226,11 +254,18 @@
             startButton.classList.add('hidden');
             startButton.classList.remove('button-pulse'); // Remove pulse animation
             playAgainButton.classList.add('hidden');
-            instructions.classList.add('hidden'); // Hide instructions
+            instructions.classList.add('hidden'); // Hide instructions for desktop
+
+            // Add class to hide instructions specifically on mobile if needed
+            if (window.innerWidth <= 768) { // Assuming 768px as mobile breakpoint
+                instructions.classList.add('hidden-on-mobile');
+            }
+
 
             timeLeftDisplay.textContent = timeLeft;
             timer = setInterval(gameLoop, 1000); // Update every second
             showRandomEmoji();
+            createTouchButtons(); // Create touch buttons for mobile
         }
 
         /**
@@ -303,8 +338,16 @@
             gameMessage.textContent = reason;
             gameMessage.classList.remove('hidden');
             playAgainButton.classList.remove('hidden');
-            
+
             showMessageBox('Game Over!', `Your final score: ${score}! ${reason}`);
+
+            // Remove touch buttons after game ends
+            const existingTouchButtons = document.querySelectorAll('.touch-button-container');
+            existingTouchButtons.forEach(button => button.remove());
+
+            // Ensure instructions are visible again after game ends
+            instructions.classList.remove('hidden');
+            instructions.classList.remove('hidden-on-mobile');
         }
 
         /**
@@ -318,16 +361,59 @@
             const requiredKey = emojiMap[currentEmoji];
 
             if (pressedKey === requiredKey) {
-                score++;
-                scoreDisplay.textContent = score;
-                gameMessage.classList.add('hidden'); // Hide any previous error message
-                hideEmoji(); // Hide current emoji immediately
-                // The setTimeout in showRandomEmoji will handle showing the next one
+                handleCorrectReaction();
             } else {
                 // Wrong key pressed
                 endGame(`Wrong key! You pressed '${event.key.toUpperCase()}', but expected '${requiredKey}'.`);
             }
         });
+
+        /**
+         * Handles a correct reaction (either key press or touch).
+         */
+        function handleCorrectReaction() {
+            score++;
+            scoreDisplay.textContent = score;
+            gameMessage.classList.add('hidden'); // Hide any previous error message
+            hideEmoji(); // Hide current emoji immediately
+            // The setTimeout in showRandomEmoji will handle showing the next one
+        }
+
+        /**
+         * Creates touch buttons for mobile devices.
+         */
+        function createTouchButtons() {
+            // Check if buttons already exist to prevent duplicates
+            if (document.querySelector('.touch-button-container')) {
+                return;
+            }
+
+            const buttonContainer = document.createElement('div');
+            buttonContainer.classList.add('mt-6', 'flex', 'justify-around', 'w-full', 'touch-button-container');
+
+            // Order the buttons based on the defined emojiMap order
+            emojis.forEach(emoji => {
+                const key = emojiMap[emoji]; // Get the key for the current emoji
+                const button = document.createElement('button');
+                button.textContent = key; // Display the key on the button
+                button.classList.add(
+                    'bg-purple-600', 'text-white', 'font-bold', 'py-3', 'px-6',
+                    'rounded-full', 'shadow-md', 'focus:outline-none', 'focus:ring-2',
+                    'focus:ring-purple-400', 'active:bg-purple-800' // active for immediate feedback
+                );
+                // Use touchstart for better responsiveness on mobile
+                button.addEventListener('touchstart', (e) => {
+                    e.preventDefault(); // Prevent default touch behavior like scrolling
+                    if (gameActive && currentEmoji === emoji) { // Check if the button's associated emoji matches
+                        handleCorrectReaction();
+                    } else if (gameActive) {
+                        endGame(`Wrong button! You pressed '${key}', but expected '${emojiMap[currentEmoji]}'.`);
+                    }
+                });
+                buttonContainer.appendChild(button);
+            });
+            gameContainer.appendChild(buttonContainer);
+        }
 
         // Event Listeners for buttons
         startButton.addEventListener('click', startGame);
@@ -338,4 +424,3 @@
     </script>
 </body>
 </html>
-�

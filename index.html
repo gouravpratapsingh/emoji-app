@@ -120,8 +120,9 @@
         /* Styles for mobile touch buttons */
         .touch-button-container {
             display: none; /* Hidden by default, shown via JS for active game */
+            margin-top: 1.5rem; /* Add some space from above elements */
             gap: 1rem; /* Space between buttons */
-            flex-wrap: wrap; /* Allow buttons to wrap on smaller screens */
+            flex-wrap: wrap; /* Allow buttons to wrap on smaller screens if needed */
             justify-content: center;
         }
         .touch-button-container button {
@@ -131,11 +132,12 @@
             padding: 0.75rem 1.25rem;
         }
 
+        /* Media query to show touch buttons on smaller screens */
         @media (max-width: 768px) {
             .touch-button-container {
                 display: flex; /* Show touch buttons on smaller screens */
             }
-            /* Hide instructions on smaller screens when game starts, or show only relevant part */
+            /* Optionally, hide instructions on smaller screens when game starts */
             #instructions.hidden-on-mobile {
                 display: none;
             }
@@ -261,7 +263,6 @@
                 instructions.classList.add('hidden-on-mobile');
             }
 
-
             timeLeftDisplay.textContent = timeLeft;
             timer = setInterval(gameLoop, 1000); // Update every second
             showRandomEmoji();
@@ -293,8 +294,8 @@
                 return;
             }
 
-            const randomIndex = Math.floor(Math.random() * emojis.length);
-            currentEmoji = emojis[randomIndex];
+            const randomIndex = Math.floor(Math.random() * Object.keys(emojiMap).length);
+            currentEmoji = Object.keys(emojiMap)[randomIndex];
             emojiDisplay.textContent = currentEmoji;
             emojiDisplay.classList.remove('hidden'); // Show emoji
             emojiDisplay.style.transform = 'scale(1)'; // Pop up effect
@@ -392,7 +393,7 @@
             buttonContainer.classList.add('mt-6', 'flex', 'justify-around', 'w-full', 'touch-button-container');
 
             // Order the buttons based on the defined emojiMap order
-            emojis.forEach(emoji => {
+            Object.keys(emojiMap).forEach(emoji => { // Iterate through emojiMap keys to maintain order
                 const key = emojiMap[emoji]; // Get the key for the current emoji
                 const button = document.createElement('button');
                 button.textContent = key; // Display the key on the button
